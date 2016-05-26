@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
   collapse=TRUE
 )
 
-opts_chunk$set(tidy=FALSE, size='scriptsize',
+opts_chunk$set(fig.path=paste0(VAR, 'public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/'), tidy=FALSE, size='scriptsize',
                fig.align='center',  fig.width=5,  fig.height=3,
                message=FALSE,warning=FALSE, results = 'hide', echo=F)
 options(width=81,continue=" ",digits=8)
