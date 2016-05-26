@@ -1,0 +1,554 @@
+---
+layout: post
+title: "Gerber Statistic and Hierarchical Risk Parity"
+output: html_document
+---
+---
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+```{r, echo = FALSE, message = FALSE}
+suppressWarnings(library(knitr))
+knitr::opts_chunk$set(
+  comment = "",
+  error = FALSE,
+  tidy = FALSE,
+  cache = FALSE,
+  collapse=TRUE
+)
+
+opts_chunk$set(fig.path=paste0(VAR, 'public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/'),tidy=FALSE, size='scriptsize', fig.align='center',  fig.width=5,  fig.height=3, message=FALSE,warning=FALSE, results = 'hide', echo=F)
+options(width=81,continue=" ",digits=8)
+
+options(stringsAsFactors = F)
+
+
+```
+
+
+```{r echo=F}
+library(Rcpp)
+library(zoo)
+library(xts)
+library(quantmod)
+library(PortfolioConstruction)
+source("SRC_portopt.R")
+source("SRC_additional_functions.R")
+source("SRC_buyhold.R")
+
+```
+
+
+## Portfolio Allocation
+
+This section allocates portfolio by incorporating [Gerber Statistic](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2708678), factor modelling, and [Hierarchical Risk Parity](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2627803) framework. Gerber Statistic is aimed to improve the correlation/covariance matrix by filtering out data sets that do not move beyond a certain threshold. The HRP framework is used to allocate weightings by clustering securities based on their similarities and then enforce a risk parity among the clusters.
+
+The steps to generate portfolio weightings for each period is as follows
+
+- filter out the securities with available data for both security returns and factor returns
+- apply cross-sectional regression on security returns to generate factor betas and specific risks
+- use Gerber Statistic method to generate factor covariance matrix
+- combine factor betas, factor covariance matrix, and specific risks to generate the covariance and the correlation matrix for the portfolio securities
+- apply the HRP framework with covariance and correlation matrices as input, generating the weightings for each security in the portfolio
+- benchmark the portfolio cumulative returns against benchmark
+
+Three different portfolios were generated to showcase the results. The three portfolios are:
+
+* Vanilla Covariance Matrix with HRP Generated Weights
+* Gerber Statistic Covariance Matrix with Minimum Variance Weights
+* Gerber Statistic Covariance Matrix with HRP Generated Weights
+
+These portfolios were then compared to the S&P 500. The date of valuation starts from January 31, 2013 due to the limited time frame of the data.  
+
+## Data Description
+
+The universe of equities selected comrpise of equities listed in the S&P 500 and NASDAQ since 2005 adjusted for survivorship bias. The data is sourced from Bloomberg. The historical data for the equities stretches back to 1990 with the backtest only begining in 2005. This is due for the need to operate within the bloomberg monthly limit, the use of multi-year averages in the factors, and the need to measure the consecutive changes accurately by providing a long enough history for the computation to provide a realistic value. Companies with a market capitalization of less than $10 million are excluded from the analysis. 
+
+The factors being analyzed are categorized into 7 groups. These include: 
+
+1. Traditional Value (TV)
+
+2. Relative Value (RV)
+
+3. Historical Growth (HG)
+
+4. Profit Trends (PT)
+
+5. Price Momentum (PM)
+
+6. Price Reversal (PR)
+
+7. Small Size (SS)
+
+For the composition of these factor groups, please see the appendix. 
+
+Only equities that have the information to calculate all the factors in the factor groups are included in the analysis due to a lack of available data from bloomberg for every firm. This leaves us with 962 stocks at the start of the time series and ending with 1824 in the universe. 
+
+```{r eval = F}
+###################################################################################
+# US
+###################################################################################
+
+load("risk.model.US.RData")
+options(scipen = 999)
+
+lookback <- 12
+
+nperiod   <- dim(all.data)[1] 
+nsecurity <- dim(all.data)[2]
+
+return.security <- all.data[,,1]
+return.factor   <- all.data[,,10:16]
+nfactor         <- dim(return.factor)[3]
+
+time.index.factor <- index(specific.variance)
+time.index.return <- seq(time.index.factor[2] + 1, length = length(time.index.factor), by = "1 month") - 1
+
+ticker.all        <- dimnames(all.data)[[2]]
+
+####################################################################################################
+# VANILLA COVARIANCE and HRP 
+####################################################################################################
+
+weight.portfolio  <- xts(x = array(0, c(nperiod, nsecurity)), order.by = time.index.return)
+names(weight.portfolio) <- ticker.all
+return.portfolio  <- xts(x = array(0, c(nperiod)), order.by = time.index.return)
+
+for(i in (lookback+12):(nperiod))
+{
+  print(i)
+  
+  # subset returns
+  return.security.i <- return.security[(i-lookback+1):i,]
+  return.factor.i   <- return.factor[(i-lookback+1):(i),,]
+  
+  # get number of eligible security
+  ticker.eligible.security <- ticker.all[!is.na(apply(return.security.i, 2, sum))]
+  ticker.eligible.factor   <- ticker.all[!is.na(apply(return.factor.i, 2, sum))]
+  ticker.eligible          <- intersect(ticker.eligible.security, ticker.eligible.factor)
+  
+  # subset returns to ensure valid returns only
+  return.security.clean <- return.security.i[,ticker.eligible]
+  return.factor.clean   <- return.factor.i[,ticker.eligible,]
+  
+  nsecurity.i <- length(ticker.eligible)
+  
+  # generate beta and residual SSE
+  beta                 <- array(NA, c(nfactor, nsecurity.i))
+  residual.sse         <- array(NA, c(nsecurity.i))
+  for(j in 1:nsecurity.i)
+  {
+    temp.result     <- LM_CPP(return.security.clean[,j], return.factor.clean[,j,])
+    beta[,j]        <- temp.result$coefficients
+    residual.sse[j] <- temp.result$resid_SSE
+  }
+  
+  # produce covariance/correlation matrix
+  
+  # using vanilla covariance method for factor covariance
+  cov.factor <- cov(apply(return.factor.clean, c(1,3), mean))
+  
+  # generate portfolio covariance matrix
+  cov.portfolio  <- t(beta) %*% cov.factor %*% beta + diag(residual.sse ^ 2)
+  
+  # generate normalization matrix for pseudo-correlation matrix
+  norm.matrix <- sqrt(diag(cov.portfolio)) %*% t(sqrt(diag(cov.portfolio)))
+  
+  # generate pseudo-correlation matrix
+  cor.portfolio        <- cov.portfolio/norm.matrix
+  cor.portfolio[cor.portfolio > 1] <- 1 # enforce everything is less than 1
+  
+  # generate HRP weighting
+  weight.portfolio[i,ticker.eligible] <- HRP(cor.portfolio, cov.portfolio)               ## use normal quadprog function instead of HRP as alternative
+  
+  if(i != nperiod){return.portfolio[i+1] = sum(return.security[i+1,] * weight.portfolio[i,], na.rm=T)}
+}
+
+stocks <- colnames(weight.portfolio)
+load("pricesAVG.RData")
+prices <- prices[[length(prices)]][,stocks]
+
+models <- list()
+
+data <- new.env()
+
+data$prices <- prices
+data$weight <- data$prices
+data$weight[] = NA
+data$weight = weight.portfolio
+capital = 100000
+
+weight.activation <- apply(data$weight,1, function(x) sum(x, na.rm=T))
+weight.activation <- names(weight.activation[which(weight.activation!=0)][1])
+data$weight <- data$weight[paste(weight.activation, "::")]
+data$prices <- data$prices[paste(weight.activation, "::")]
+index(data$weight) <- index(data$prices)
+
+data$weight[] = (capital / data$prices) * (data$weight) 
+data$execution.price <- data$prices
+models[["CoVar_HRP"]] = bt.run(data,type='share', capital=capital, do.CarryLastObservationForwardIfNA =F)
+
+####################################################################################################
+# GERBER and HRP 
+####################################################################################################
+
+weight.portfolio  <- xts(x = array(0, c(nperiod, nsecurity)), order.by = time.index.return)
+names(weight.portfolio) <- ticker.all
+return.portfolio  <- xts(x = array(0, c(nperiod)), order.by = time.index.return)
+
+for(i in (lookback+12):(nperiod))
+{
+  print(i)
+  
+  # subset returns
+  return.security.i <- return.security[(i-lookback+1):i,]
+  return.factor.i   <- return.factor[(i-lookback+1):(i),,]
+  
+  # get number of eligible security
+  ticker.eligible.security <- ticker.all[!is.na(apply(return.security.i, 2, sum))]
+  ticker.eligible.factor   <- ticker.all[!is.na(apply(return.factor.i, 2, sum))]
+  ticker.eligible          <- intersect(ticker.eligible.security, ticker.eligible.factor)
+  
+  # subset returns to ensure valid returns only
+  return.security.clean <- return.security.i[,ticker.eligible]
+  return.factor.clean   <- return.factor.i[,ticker.eligible,]
+  
+  nsecurity.i <- length(ticker.eligible)
+  
+  # generate beta and residual SSE
+  beta                 <- array(NA, c(nfactor, nsecurity.i))
+  residual.sse         <- array(NA, c(nsecurity.i))
+  for(j in 1:nsecurity.i)
+  {
+    temp.result     <- LM_CPP(return.security.clean[,j], return.factor.clean[,j,])
+    beta[,j]        <- temp.result$coefficients
+    residual.sse[j] <- temp.result$resid_SSE
+  }
+  
+  # produce covariance/correlation matrix
+  
+  # using Gerber Method for factor covariance
+  temp.factor <- GERBER_CORRELATION_COVARIANCE(apply(return.factor.clean, c(1,3), mean)) ## use normal cov() instead of gerber function as alternative
+  cov.factor  <- temp.factor$Covariance
+  if(sum(is.nan(cov.factor))>0)
+  {
+    print("gerber didn't work")
+    cov.factor <- cov(apply(return.factor.clean, c(1,3), mean))
+  }
+  
+  # generate portfolio covariance matrix
+  cov.portfolio        <- t(beta) %*% cov.factor %*% beta + diag(residual.sse ^ 2)
+  
+  # generate normalization matrix for pseudo-correlation matrix
+  norm.matrix <- sqrt(diag(cov.portfolio)) %*% t(sqrt(diag(cov.portfolio)))
+  
+  # generate pseudo-correlation matrix
+  cor.portfolio        <- cov.portfolio/norm.matrix
+  cor.portfolio[cor.portfolio > 1] <- 1 # enforce everything is less than 1
+  
+  # generate HRP weighting
+  weight.portfolio[i,ticker.eligible] <- HRP(cor.portfolio, cov.portfolio)               ## use normal quadprog function instead of HRP as alternative
+  
+  if(i != nperiod){return.portfolio[i+1] = sum(return.security[i+1,] * weight.portfolio[i,], na.rm=T)}
+}
+
+stocks <- colnames(weight.portfolio)
+load("pricesAVG.RData")
+prices <- prices[[length(prices)]][,stocks]
+
+data <- new.env()
+
+data$prices <- prices
+data$weight <- data$prices
+data$weight[] = NA
+data$weight = weight.portfolio
+capital = 100000
+
+weight.activation <- apply(data$weight,1, function(x) sum(x, na.rm=T))
+weight.activation <- names(weight.activation[which(weight.activation!=0)][1])
+data$weight <- data$weight[paste(weight.activation, "::")]
+data$prices <- data$prices[paste(weight.activation, "::")]
+index(data$weight) <- index(data$prices)
+
+data$weight[] = (capital / data$prices) * (data$weight) 
+data$execution.price <- data$prices
+models[["Gerber_HRP"]] = bt.run(data,type='share', capital=capital, do.CarryLastObservationForwardIfNA =F)
+
+####################################################################################################
+# Gerber Minimum Variance Weighting
+####################################################################################################
+
+
+weight.portfolio  <- xts(x = array(0, c(nperiod, nsecurity)), order.by = time.index.return)
+names(weight.portfolio) <- ticker.all
+return.portfolio  <- xts(x = array(0, c(nperiod)), order.by = time.index.return)
+
+for(i in (lookback+12):(nperiod))
+{
+  print(i)
+  
+  # subset returns
+  return.security.i <- return.security[(i-lookback+1):i,]
+  return.factor.i   <- return.factor[(i-lookback+1):(i),,]
+  
+  # get number of eligible security
+  ticker.eligible.security <- ticker.all[!is.na(apply(return.security.i, 2, sum))]
+  ticker.eligible.factor   <- ticker.all[!is.na(apply(return.factor.i, 2, sum))]
+  ticker.eligible          <- intersect(ticker.eligible.security, ticker.eligible.factor)
+  
+  # subset returns to ensure valid returns only
+  return.security.clean <- return.security.i[,ticker.eligible]
+  return.factor.clean   <- return.factor.i[,ticker.eligible,]
+  
+  nsecurity.i <- length(ticker.eligible)
+  
+  # generate beta and residual SSE
+  beta                 <- array(NA, c(nfactor, nsecurity.i))
+  residual.sse         <- array(NA, c(nsecurity.i))
+  for(j in 1:nsecurity.i)
+  {
+    temp.result     <- LM_CPP(return.security.clean[,j], return.factor.clean[,j,])
+    beta[,j]        <- temp.result$coefficients
+    residual.sse[j] <- temp.result$resid_SSE
+  }
+  
+  # produce covariance/correlation matrix
+  
+  # using Gerber Method for factor covariance
+  temp.factor <- GERBER_CORRELATION_COVARIANCE(apply(return.factor.clean, c(1,3), mean)) ## use normal cov() instead of gerber function as alternative
+  cov.factor  <- temp.factor$Covariance
+  if(sum(is.nan(cov.factor))>0)
+  {
+    print("gerber didn't work")
+    cov.factor <- cov(apply(return.factor.clean, c(1,3), mean))
+  }
+  
+  # generate portfolio covariance matrix
+  cov.portfolio        <- t(beta) %*% cov.factor %*% beta + diag(residual.sse ^ 2)
+  
+  n <- ncol(cov.portfolio)
+  
+  #--------------------------------------------------------------------------
+  # Create constraints
+  #--------------------------------------------------------------------------
+  # set min/max wgts for individual stocks: 0 =< x <= 1
+  constraints = new.constraints(n, lb = 0, ub = 1)
+  
+  # wgts must sum to 1 (fully invested)
+  constraints = add.constraints(rep(1,n), 1, type = '=', constraints)
+  
+  #--------------------------------------------------------------------------
+  # Solve QP problem
+  #--------------------------------------------------------------------------     
+  sol = solve.QP.bounds(Dmat = cov.portfolio, dvec = rep(0, nrow(cov.portfolio)) , 
+                        Amat=constraints$A, bvec=constraints$b, constraints$meq,
+                        lb = constraints$lb, ub = constraints$ub)
+  
+  
+  # generate HRP weighting
+  weight.portfolio[i,ticker.eligible] <- sol[[1]]              ## use normal quadprog function instead of HRP as alternative
+  if(i != nperiod){return.portfolio[i+1] = sum(return.security[i+1,] * weight.portfolio[i,], na.rm=T)}
+}
+
+stocks <- colnames(weight.portfolio)
+load("pricesAVG.RData")
+prices <- prices[[length(prices)]][,stocks]
+
+data <- new.env()
+
+data$prices <- prices
+data$weight <- data$prices
+data$weight[] = NA
+data$weight = weight.portfolio
+capital = 100000
+
+weight.activation <- apply(data$weight,1, function(x) sum(x, na.rm=T))
+weight.activation <- names(weight.activation[which(weight.activation!=0)][1])
+data$weight <- data$weight[paste(weight.activation, "::")]
+data$prices <- data$prices[paste(weight.activation, "::")]
+index(data$weight) <- index(data$prices)
+
+data$weight[] = (capital / data$prices) * (data$weight) 
+data$execution.price <- data$prices
+models[["Gerber_MinVar"]] =  bt.run(data,type='share', capital=capital, do.CarryLastObservationForwardIfNA =F)
+
+####################################################################################################
+# SPX Index
+####################################################################################################
+
+tickers = spl('^GSPC')
+
+data <- new.env()
+getSymbols(tickers, src = 'yahoo', from = "2007-01-31", to = "2016-04-29",env = data, auto.assign = T)
+for(i in ls(data)) data[[i]] = adjustOHLC(data[[i]], use.Adjusted=T)
+bt.prep(data, align='remove.na')
+
+data$prices <- data$prices[endpoints(data$prices, on="months")[-1], ]
+  
+data$execution.price <- data$execution.price[endpoints(data$execution.price, on="months")[-1], ]
+
+data$weight = NA * data$prices
+data$weight$GSPC = 1
+models$SPX = bt.run.share(data, clean.signal=T, trade.summary=F, silent=T, do.lag=-1)
+
+
+####################################################################################################
+# Report Generation
+####################################################################################################
+
+plotbt(models, plotX = T, log = 'y', LeftMargin = 3, main="Composite Average")            
+mtext('Cumulative Performance', side = 2, line = 1)
+
+plotbt.strategy.sidebyside(models, make.plot=T, return.table=T, perfromance.fn = engineering.returns.kpi)
+
+plotbt(models, plottype = '12M', LeftMargin = 3)        
+mtext('12 Month Rolling', side = 2, line = 1)
+
+plotbt(models, xfun = function(x) { 100 * compute.drawdown(x$equity) }, LeftMargin = 3)
+mtext('Drawdown', side = 2, line = 1)
+
+```
+
+
+```{r}
+
+load(file="Gerber.RData")
+####################################################################################################
+# SPX Index
+####################################################################################################
+
+tickers = spl('^GSPC')
+
+data <- new.env()
+getSymbols(tickers, src = 'yahoo', from = "2007-01-31", to = "2016-04-29",env = data, auto.assign = T)
+for(i in ls(data)) data[[i]] = adjustOHLC(data[[i]], use.Adjusted=T)
+bt.prep(data, align='remove.na')
+
+data$prices <- data$prices[endpoints(data$prices, on="months")[-1], ]
+  
+data$execution.price <- data$execution.price[endpoints(data$execution.price, on="months")[-1], ]
+
+data$weight = NA * data$prices
+data$weight$GSPC = 1
+models$SPX = bt.run.share(data, clean.signal=T, trade.summary=F, silent=T, do.lag=-1)
+
+
+####################################################################################################
+# Report Generation
+####################################################################################################
+
+plotbt(models, plotX = T, log = 'y', LeftMargin = 3, main="Composite Average")            
+mtext('Cumulative Performance', side = 2, line = 1)
+
+plotbt.strategy.sidebyside(models, make.plot=T, return.table=T, perfromance.fn = engineering.returns.kpi)
+
+plotbt(models, plottype = '12M', LeftMargin = 3)        
+mtext('12 Month Rolling', side = 2, line = 1)
+
+plotbt(models, xfun = function(x) { 100 * compute.drawdown(x$equity) }, LeftMargin = 3)
+mtext('Drawdown', side = 2, line = 1)
+```
+
+\newpage
+
+Here are the specific performances of each individual strategy:
+
+### Vanilla Covariance and HRP
+
+```{r}
+m = names(models)[1]
+
+plotbt.monthly.table(models[[m]]$equity, make.plot = T)
+```
+
+### Gerber and HRP
+
+```{r}
+m = names(models)[2]
+
+plotbt.monthly.table(models[[m]]$equity, make.plot = T)
+```
+
+### Gerber and Minimum-Variance
+
+```{r}
+m = names(models)[3]
+
+plotbt.monthly.table(models[[m]]$equity, make.plot = T)
+
+```
+
+## S&P 500
+
+```{r}
+
+m = names(models)[4]
+
+plotbt.monthly.table(models[[m]]$equity, make.plot = T)
+```
+
+
+\newpage
+
+##Appendix
+
+Here are the components of the factor groups:
+
+1. Traditional Value (TV)
+
+* Price/12-Month Forward Earnings Consensus Estimate. Twelve-month forward earnings is calculated as the time-weighted average of FY1 and FY2 (the upcoming and the following fiscal year-end earnings forecasts). The weight for FY1 is the ratio of the number of days left in the year to the total number of days in a year, and the weight for FY2 is one minus the weight for FY1.
+* Price/Trailing 12-Month Sales. Trailing sales is computed as the sum of the quarterly sales over the last 4 quarters.
+Price/Trailing 12-Month Cash Flows. The trailing cash flow is computed as the sum of the quarterly cash flow over the last 4 quarters.
+* Dividend Yield. This is computed as the total DPS paid over the last year, divided by the current price.
+* Price/Book Value. For the book value we use the last quarterly value.
+
+2. Relative Value (RV)
+
+* Industry-Relative Price/Trailing 12-Month Sales
+* Industry-Relative Price/Trailing 12-Month Earnings
+* Industry-Relative Price/Trailing 12-Month Cash Flows
+* Industry-Relative Price/Trailing 12-Month Sales (Current Spread vs. 5-Year Average)
+* Industry-Relative Price/Trailing 12-Month Earnings (Current Spread vs. 5-Year Average)
+* Industry-Relative Price/Trailing 12-Month Cash Flows (Current Spread vs. 5-Year Average)
+
+3. Historical Growth (HG)
+* Number of Consecutive Quarters of Positive Changes in Trailing 12-Month Cash Flows (counted over the last 24 quarters). For each of the last 24 quarters we compute the trailing 12-month cash flow, and then count the number of times the consecutive changes in those trailing cash flows are of the same sign from quarter to quarter, starting with the most recent quarter and going back. If the consecutive quarter-to-quarter changes are negative, we count each change as -1, and if they are positive we count each change as +1.
+* Number of Consecutive Quarters of Positive Change in Trailing 12-Month Quarterly Earnings (counted over the last 24 quarters). We calculate the trailing 12-month quarterly earnings by summing up the quarterly earnings for the last 4 quarters, and compute the number of consecutive quarters in the same way as in the item above.
+* 12-Month Change in Quarterly Cash Flows. This is the difference between the trailing 12-month cash flow for the most recent quarter and the trailing 12-month cash flow for the quarter exactly one year back from the most recent quarter. 3-Year Average Annual Sales Growth. For each of the last 3 years we compute the 1-year percentage change in sales, and then compute the 3-year average of those 1-year percentage changes.
+* 3-Year Average Annual Earnings Growth. The same calculation as in the item above is done, but for earnings. 
+* 12-Quarter Trendline in Trailing 12-Month Earnings. For each of the last 12 quarters we take the trailing 12- month earnings and calculate the slope of the linear trendline fitted to those 12 points, and then divide that slope by the average 12-month trailing earnings across all 12 quarters.
+* 12-Quarter Trendline in Trailing 12-Month Cash Flows. This is calculated in the same way as described in the item above, but using cash flows instead of earnings.
+
+\newpage
+
+4. Profit Trends (PT)
+* Number of Consecutive Quarters of Declines in (Receivables + Inventories)/Trailing 12-Month Sales (counted over the last 24 quarters). We start with the most recent quarter and count back. If the consecutive quarter-to-quarter changes are negative, we count each change as +1, and if they are positive we count each change as -1. Receivables is calculated as the average of the receivables for this quarter and the quarter one year ago, and the inventories number is calculated similarly.
+Number of Consecutive Quarters of Positive Change in Trailing 12-Month Cash Flows/Trailing
+* 12-Month Sales (counted over the last 24 quarters). We start with the most recent quarter and count back. If the consecutive quarter-toquarter changes are positive, we count each changeas +1, and if they are negative we count each change as -1.
+* Consecutive Quarters of Declines in Trailing 12-Month Overhead/Trailing 12-Month Sales (counted over the last 24 quarters). We start with the most recent quarter and count back. If the consecutive quarter-to-quarter changes are negative, we count each change as +1, and if they are positive we count each change as -1. The trailing 12-month overhead equals trailing 12- month sales minus trailing 12-month COGS minus trailing 12-month EBEX, where the trailing 12-month values are obtained by summing the quarterly values for the last 4 quarters.
+* Industry-Relative Trailing 12-Month (Receivables + Inventories)/Trailing 12-Month Sales. The industry-relative ratio is obtained by standardizing the underlying ratio using the mean and standard deviation of that ratio across all companies in that industry group.
+* Industry-Relative Trailing 12-Month Sales/Assets. The assets value is the average of the assets for this quarter and the assets for the quarter one year ago. The industry-relative ratio is obtained by standardizing the underlying ratio using the mean and standard deviation of that ratio across all companies in that industry group.
+* Trailing 12-Month Overhead/Trailing 12-Month Sales. Trailing 12-month overhead equals trailing 12-month sales minus trailing 12-month COGS minus trailing 12-month EBEX, where the trailing 12-month values are obtained by summing the quarterly values for the last 4 quarters.
+* Trailing 12-Month Earnings/Trailing 12-Month Sales
+
+5. Price Momentum (PM)
+* Slope of 52-Week Trendline (calculated with 20-day lag) Percent Above 260-Day Low (calculated with 20-day lag)
+* 4/52-Week Price Oscillator (calculated with 20-day lag). This is computed as the ratio of the average weekly price over the past 4 weeks to the average weekly price over the past 52 weeks, minus 1.
+* 39-Week Return (calculated with 20-day lag)
+* 52-Week Volume Price Trend (calculated with 20-day lag).
+
+6. Price Reversal (PR)
+* 5-Day Industry-Relative Return. This is calculated as the 5-day return minus the cap-weighted average 5-day return within that industry.
+* 5-Day Money Flow/Volume. To obtain the numerator of this ratio, for each of the past 5 days we compute the closing price times the volume (shares traded) for that day, multiply that by -1 if that day's return is negative, and sum those daily values. To obtain the denominator, we simply sum the closing price times the daily volume across the past 5 days (without multiplying those daily products further by -1 if the corresponding daily return is negative).
+* 12-26 Day MACD-10-Day Signal Line.
+* 14-Day RSI (Relative-Strength Index).
+* 20-Day Lane's Stochastic Indicator.
+* 4-Week Industry-Relative Return. This is calculated as the 4-week return minus the capweighted average 4-week return within that industry.
+
+7. Small Size (SS)
+* Log of Market Capitalization
+* Log of Market Capitalization Cubed
+* Log of Stock Price
+* Log of Total Last Quarter Assets
+* Log of Trailing 12-Month Sales
