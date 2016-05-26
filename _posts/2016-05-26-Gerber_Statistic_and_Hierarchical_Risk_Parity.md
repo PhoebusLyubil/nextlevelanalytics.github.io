@@ -9,6 +9,7 @@ author: "Yi Kang and Chris Chung"
 
 
 
+_By Yi Kang and Chris Chung_
 
 ## Portfolio Allocation
 

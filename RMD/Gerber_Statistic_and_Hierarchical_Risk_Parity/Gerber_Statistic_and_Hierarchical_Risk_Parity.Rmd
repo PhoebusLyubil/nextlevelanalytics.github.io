@@ -37,6 +37,7 @@ source("SRC_buyhold.R")
 
 ```
 
+_By Yi Kang and Chris Chung_
 
 ## Portfolio Allocation
 
