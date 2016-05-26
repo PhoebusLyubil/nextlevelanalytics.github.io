@@ -3,11 +3,6 @@ layout: post
 title: "Gerber Statistic and Hierarchical Risk Parity"
 output: html_document
 ---
----
-output: 
-  pdf_document: 
-    latex_engine: xelatex
----
 
 
 
