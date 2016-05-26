@@ -2,6 +2,7 @@
 layout: post
 title: "Gerber Statistic and Hierarchical Risk Parity"
 output: html_document
+author: "Yi Kang and Chris Chung"
 ---
 
 
@@ -11,7 +12,7 @@ output: html_document
 
 ## Portfolio Allocation
 
-This section allocates portfolio by incorporating [Gerber Statistic](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2708678), factor modelling, and [Hierarchical Risk Parity](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2627803) framework. Gerber Statistic is aimed to improve the correlation/covariance matrix by filtering out data sets that do not move beyond a certain threshold. The HRP framework is used to allocate weightings by clustering securities based on their similarities and then enforce a risk parity among the clusters.
+This section allocates portfolio by incorporating the [Gerber Statistic](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2708678), Factor Modelling, and the [Hierarchical Risk Parity](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2627803) framework. The Gerber Statistic is aimed to improve the correlation/covariance matrix by filtering out data sets that do not move beyond a certain threshold. The HRP framework is used to allocate weightings by clustering securities based on their similarities and then enforce a risk parity among the clusters.
 
 The steps to generate portfolio weightings for each period is as follows
 
@@ -57,30 +58,28 @@ Only equities that have the information to calculate all the factors in the fact
 
 
 
-<img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-2.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-3.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-4.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" />
+<img src="figure/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="figure/unnamed-chunk-4-2.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="figure/unnamed-chunk-4-3.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="figure/unnamed-chunk-4-4.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" />
 
-\newpage
 
 Here are the specific performances of each individual strategy:
 
 ### Vanilla Covariance and HRP
 
-<img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" style="display: block; margin: auto;" />
+<img src="figure/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" style="display: block; margin: auto;" />
 
 ### Gerber and HRP
 
-<img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" style="display: block; margin: auto;" />
+<img src="figure/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" style="display: block; margin: auto;" />
 
 ### Gerber and Minimum-Variance
 
-<img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-7-1.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" style="display: block; margin: auto;" />
+<img src="figure/unnamed-chunk-7-1.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" style="display: block; margin: auto;" />
 
 ## S&P 500
 
-<img src="/public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" style="display: block; margin: auto;" />
+<img src="figure/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" style="display: block; margin: auto;" />
 
 
-\newpage
 
 ##Appendix
 
@@ -110,8 +109,6 @@ Price/Trailing 12-Month Cash Flows. The trailing cash flow is computed as the su
 * 3-Year Average Annual Earnings Growth. The same calculation as in the item above is done, but for earnings. 
 * 12-Quarter Trendline in Trailing 12-Month Earnings. For each of the last 12 quarters we take the trailing 12- month earnings and calculate the slope of the linear trendline fitted to those 12 points, and then divide that slope by the average 12-month trailing earnings across all 12 quarters.
 * 12-Quarter Trendline in Trailing 12-Month Cash Flows. This is calculated in the same way as described in the item above, but using cash flows instead of earnings.
-
-\newpage
 
 4. Profit Trends (PT)
 * Number of Consecutive Quarters of Declines in (Receivables + Inventories)/Trailing 12-Month Sales (counted over the last 24 quarters). We start with the most recent quarter and count back. If the consecutive quarter-to-quarter changes are negative, we count each change as +1, and if they are positive we count each change as -1. Receivables is calculated as the average of the receivables for this quarter and the quarter one year ago, and the inventories number is calculated similarly.
