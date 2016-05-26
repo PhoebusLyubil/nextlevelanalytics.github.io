@@ -82,7 +82,7 @@ Here are the specific performances of each individual strategy:
 
 
 
-##Appendix
+## Appendix
 
 Here are the components of the factor groups:
 

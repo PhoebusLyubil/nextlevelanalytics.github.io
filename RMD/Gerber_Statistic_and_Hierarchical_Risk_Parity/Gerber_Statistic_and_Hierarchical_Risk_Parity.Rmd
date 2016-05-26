@@ -488,7 +488,7 @@ plotbt.monthly.table(models[[m]]$equity, make.plot = T)
 
 
 
-##Appendix
+## Appendix
 
 Here are the components of the factor groups:
 
