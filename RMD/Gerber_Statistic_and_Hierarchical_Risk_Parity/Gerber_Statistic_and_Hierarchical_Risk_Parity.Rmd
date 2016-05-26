@@ -58,7 +58,7 @@ Three different portfolios were generated to showcase the results. The three por
 * Gerber Statistic Covariance Matrix with Minimum Variance Weights
 * Gerber Statistic Covariance Matrix with HRP Generated Weights
 
-These portfolios were then compared to the S&P 500. The date of valuation starts from January 31, 2013 due to the limited time frame of the data.  
+These portfolios were then compared to the S&P 500. The date of valuation starts from January 31, 2007 due to the limited time frame of the data.  
 
 ## Data Description
 
