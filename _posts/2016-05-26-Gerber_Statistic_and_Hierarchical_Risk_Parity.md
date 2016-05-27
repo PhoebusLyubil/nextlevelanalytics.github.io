@@ -13,7 +13,7 @@ _By Nico, Yi and Chris_
 
 ## Portfolio Allocation
 
-This section allocates portfolio by incorporating the [Gerber Statistic](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2708678), Factor Modelling, and the [Hierarchical Risk Parity](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2627803) framework. The Gerber Statistic is aimed to improve the correlation/covariance matrix by filtering out data sets that do not move beyond a certain threshold. The HRP framework is used to allocate weightings by clustering securities based on their similarities and then enforce a risk parity among the clusters.
+This section allocates portfolio by incorporating the [Gerber Statistic](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2627803), Factor Modelling, and the [Hierarchical Risk Parity](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2708678) framework. The Gerber Statistic is aimed to improve the correlation/covariance matrix by filtering out data sets that do not move beyond a certain threshold. The HRP framework is used to allocate weightings by clustering securities based on their similarities and then enforce a risk parity among the clusters.
 
 The steps to generate portfolio weightings for each period is as follows
 
