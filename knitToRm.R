@@ -6,7 +6,7 @@ knit.rmd.file <- function(input.path, output.path){
   VAR <- ""
   knitr::knit(input=input.path, output=output.path)
   # knitr::knit(input="RMD/FAA-Strategy/FAA_Explanation.Rmd", output="_posts/2016-05-16-FAA_Explanation.md")
-  VAR <- "~/"
+  VAR <- "/"
   knitr::knit(input=input.path, output=output.path)
   #knitr::knit(input="RMD/FAA-Strategy/FAA_Explanation.Rmd", output="_posts/2016-05-16-FAA_Explanation.md")
 }

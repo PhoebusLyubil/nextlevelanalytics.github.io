@@ -59,26 +59,26 @@ Only equities that have the information to calculate all the factors in the fact
 
 
 
-<img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-2.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-3.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-4.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" />
+<img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-2.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-3.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" /><img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-4-4.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" />
 
 
 Here are the specific performances of each individual strategy:
 
 ### Vanilla Covariance and HRP
 
-<img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" style="display: block; margin: auto;" />
+<img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" style="display: block; margin: auto;" />
 
 ### Gerber and HRP
 
-<img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" style="display: block; margin: auto;" />
+<img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" style="display: block; margin: auto;" />
 
 ### Gerber and Minimum-Variance
 
-<img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-7-1.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" style="display: block; margin: auto;" />
+<img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-7-1.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" style="display: block; margin: auto;" />
 
 ## S&P 500
 
-<img src="~/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" style="display: block; margin: auto;" />
+<img src="/public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" style="display: block; margin: auto;" />
 
 
 
