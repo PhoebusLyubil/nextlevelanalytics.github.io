@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Gerber Statistic and Hierarchical Risk Parity"
+title: "Gerber Statistic and Hierarchical Risk Parity with Factor Modelling"
 output: html_document
 author: "Yi Kang and Chris Chung"
 ---
@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
   collapse=TRUE
 )
 
-opts_chunk$set(fig.path=paste0(VAR, 'public/images/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity/'), tidy=FALSE, size='scriptsize',
+knitr::opts_chunk$set(fig.path=paste0(VAR, 'public/images/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity/'), tidy=FALSE, size='scriptsize',
                fig.align='center',  fig.width=10,  fig.height=6,
                message=FALSE,warning=FALSE, results = 'hide', echo=F)
 options(width=81,continue=" ",digits=8)

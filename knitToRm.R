@@ -6,7 +6,7 @@ knit.rmd.file <- function(input.path, output.path){
   VAR <- ""
   knitr::knit(input=input.path, output=output.path)
   # knitr::knit(input="RMD/FAA-Strategy/FAA_Explanation.Rmd", output="_posts/2016-05-16-FAA_Explanation.md")
-  VAR <- "/"
+  VAR <- "~/"
   knitr::knit(input=input.path, output=output.path)
   #knitr::knit(input="RMD/FAA-Strategy/FAA_Explanation.Rmd", output="_posts/2016-05-16-FAA_Explanation.md")
 }
@@ -40,5 +40,8 @@ knit.rmd.file("RMD/Rotation/Rotation_Strategy.Rmd", "_posts/2015-05-18-Rotation_
 knit.rmd.file("RMD/Momentum Markowitz - SIT/Momentum_Markowitz_Post.Rmd", "_posts/2015-06-04-Momentum_Markowitz.md")
 knit.rmd.file("RMD/COGS_to_Revenue/COGS_to_Revenue.Rmd", "_posts/2016-05-16-COGS_to_Revenue.md")
 knit.rmd.file("RMD/DE_and_Reverse/DE_and_Reverse_DE.Rmd", "_posts/2014-10-27-DE_and_Reverse.md")
-knit.rmd.file("RMD/Gerber_Statistic_and_Hierarchical_Risk_Parity/Gerber_Statistic_and_Hierarchical_Risk_Parity.Rmd", "_posts/2016-05-26-Gerber_Statistic_and_Hierarchical_Risk_Parity.md")
+knit.rmd.file("RMD/Gerber_Statistic_and_Hierarchical_Risk_Parity/Gerber_Statistic_and_Hierarchical_Risk_Parity.Rmd", "_posts/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity.md")
+knit.rmd.file("RMD/HRP/RcppGallery_HRP.Rmd", "_posts/2016-05-27-HRP.md")
+knit.rmd.file("RMD/Gerber/RcppGallery_GerberStatistic.Rmd", "_posts/2016-05-26-Gerber.md")
+
 # 6. Push the changes to git
