@@ -3,6 +3,9 @@
 # Use of `relative_permalinks` ensures post links from the index work properly.
 permalink:           pretty
 markdown:            kramdown
+#markdown: redcarpet
+#redcarpet:
+#    extensions: ["no_intra_emphasis"]
 #relative_permalinks: true
 
 # Setup
