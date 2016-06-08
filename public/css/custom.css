@@ -86,8 +86,13 @@ div.container.content {
     width:100%;
     background-color:white;
     position:fixed;
+    z-index:1;
 }
 
 div.container.content {
     padding-top:125px;
+}
+
+.sidebar-toggle {
+    z-index: 9999;
 }
