@@ -81,3 +81,13 @@ div.container.content {
 .mjx-chtml.MathJax_CHTML {
 	font-family: "PT Serif", Georgia, "Times New Roman", serif !important;
 }
+
+.masthead {
+    width:100%;
+    background-color:white;
+    position:fixed;
+}
+
+div.container.content {
+    padding-top:75px;
+}
