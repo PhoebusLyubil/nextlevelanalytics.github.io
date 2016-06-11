@@ -44,8 +44,7 @@ First, we compute a n by n distance matrix based on the correlation matrix on th
 
 Secondly, we compute the Euclidean distance between the column-vectors of the distance matrix. $$D_{i,j} = \sqrt{\sum_{i=1}^n \left(d_{n,i} - d_{n,j}\right)^2}$$ This measures the similarity between two asset on how they correlates __to the portfolio__. The lower the distance, the more similar two assets' correlations with the portfolio are. This step is implemented in the `distanceMatrix_rowwise` function.  
 
-
-```cpp
+```{r, engine = "Rcpp"}
 #include <omp.h>
 #include <RcppArmadillo.h>
 
@@ -104,8 +103,7 @@ During each iteration, we pick a set of two most similar securities based on the
   
 At the end of the clustering step, we have a $$N by 4$$ matrix where $$N$$ stands for the number of clusters. The first two elements consist of branch index (can by both a security or a generalizing branch). The third element is the similarity/distance between the two branches, and the last element indicates the number of securities in the cluster.
 
-
-```cpp
+```{r, engine = "Rcpp"}
 #include <omp.h>
 #include <RcppArmadillo.h>
 
@@ -196,8 +194,7 @@ Provided the clusterization from the last step, we want tp re-organize the covar
 In the `flatCluster` function, we start with the last cluster generated and trace back to its components based on the first two element in the cluster matrix. If a component is a generalizing branch, the function calls itself recursively to trace back the components of the generalizing brach, until the index of a security is returned. `task` constructs from `OpenMP` is used to speed up the process by teating each "trace back" as a task, and a `taskwait` construct is used to ensure the security index is generated from a bottom-up approach.
 
 With the cluster based security index generated. `quasiDiag` function re-arranges the covariance matrix based on the new index into a quasi-diagonoal covariance matrix. In this way, "similar" securities are group together for the weight allocation step. To re-iterate, the HRP approach first divides securities into clusters and then allocates weightings based on each clusters' risk level.
-
-```cpp
+```{r, engine = "Rcpp"}
 #include <omp.h>
 #include <RcppArmadillo.h>
 
@@ -305,8 +302,7 @@ The allocation algorithm is as follows
 The implementation is done in function `weightAllocation` with recursive calls on `bisectWeightAllocation`. Similar to the cluster flatenning step, `task` constructs from `OpenMP` is used to speed up the process by treating each bisection step as a task. A `taskwait` construct is not required in this step as the update on the weight vector is top-down, and child tasks (further bisection steps) are not generated until the parent task (current bisection step) is finished.
 
 
-
-```cpp
+```{r, engine = "Rcpp"}
 #include <omp.h>
 #include <RcppArmadillo.h>
 
@@ -401,32 +397,34 @@ background-color : #EEEEEE ;
 border: 1px solid white ;}
 </style>
 
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(rbenchmark)
+library(data.table)
+set.seed(1)
+NUM_ASSET  <- 30
+NUM_PERIOD <- 2500 
+HIST_RETURN <- matrix(rnorm(NUM_ASSET*NUM_PERIOD),NUM_PERIOD,NUM_ASSET)
 
-| replications| elapsed|
-|------------:|-------:|
-|         1000|  14.646|
+HRP_Weighting <- function(HIST_RETURN){
+  HRP_DM_Elementwise  <- distanceMatrix_elementwise(cor(HIST_RETURN))
+  HRP_DM_Rowwise      <- distanceMatrix_rowwise(HRP_DM_Elementwise)
+  HRP_Cluster         <- clusterMatrix(HRP_DM_Rowwise)
+  HRP_Index           <- clusterIndex(HRP_Cluster, cov(HIST_RETURN))
+  HRP_QUASIDIAG       <- quasiDiag(cov(HIST_RETURN), HRP_Index)
+  HRP_ALLOCATION      <- weightAllocation(HRP_QUASIDIAG, HRP_Index)
+  
+  return (HRP_ALLOCATION)
+}
+
+Result <- benchmark(HRP_Weighting(HIST_RETURN), replications = 1000)
+Result <- as.data.table(Result)
+
+knitr::kable(Result[, 2:3, with = FALSE])
+
+```
 
 ## System and R-Packages Information
 
-
-```
-## R version 3.2.1 (2015-06-18)
-## Platform: x86_64-apple-darwin10.8.0 (64-bit)
-## Running under: OS X 10.11.5 (unknown)
-## 
-## locale:
-## [1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
-## 
-## attached base packages:
-## [1] stats     graphics  grDevices utils     datasets  methods   base     
-## 
-## other attached packages:
-## [1] data.table_1.9.6 rbenchmark_1.0.0 knitr_1.13      
-## 
-## loaded via a namespace (and not attached):
-##  [1] magrittr_1.5              formatR_1.4              
-##  [3] tools_3.2.1               RcppArmadillo_0.7.100.3.1
-##  [5] Rcpp_0.12.5               stringi_1.1.1            
-##  [7] highr_0.6                 stringr_1.0.0            
-##  [9] chron_2.3-47              evaluate_0.9
+```{r, echo=FALSE}
+sessionInfo()
 ```
