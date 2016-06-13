@@ -3,30 +3,24 @@ layout: post
 title: "Hierarchical Risk Parity Implementation in Rcpp and OpenMP"
 author: Rafael Nicolas Fermin Cota, Yi King, and Chris Chong
 license: GPL (>= 2)
-tags: openmp recursion modeling
+tags: openmp recursion modelling optimization
 mathjax: true
 summary: Rcpp and OpenMP implementation of Hierarchy Risk Parity portfolio allocation method
 ---
 
 _By Yi, Nico, and Chris_
 
-### Summary
+### Summary 
+Recently, there has been a new research paper coming out with the goal of improving Markowitz's Critical Line Algorithm (CLA) published by Marcos Lopez de Prado. The methodology is also currently patent pending and the paper can be downloaded [here](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2708678). The methodology suggested by the paper proposes the Hierarchical Risk Parity (HRP) approach. The HRP approach aims at tackling the issues of the original CLA regarding instability, concentration, and underperformance.
 
-[Recent research by Marcos Lopez de Prado](http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2708678)
-aims to improve Markowitz's Critical Line Algorithm (CLA). The (currently
-patent-pending) methodology proposes the Hierarchical Risk Parity (HRP)
-approach which aims to tackle several issues with the original CLA:
-instability, concentration, and underperformance.
-
->HRP applies modern mathematics (graph theory and machine learning
-techniques) to build a diversified portfolio based on the information
-contained in the covariance matrix. However, unlike quadratic optimizers, HRP
-does not require the invertibility of the covariance matrix. In fact, HRP can
-compute a portfolio on an ill-degenerated or even a singular covariance
-matrix, an impossible feat for quadratic optimizers. Monte Carlo experiments
-show that HRP delivers lower out-of-sample variance than CLA, even though
-minimum-variance is CLA's optimization objective. HRP also produces less
-risky portfolios out-of-sample compared to traditional risk parity methods.
+>HRP applies modern mathematics (graph theory and machine learning techniques) to build a
+diversified portfolio based on the information contained in the covariance matrix. However,
+unlike quadratic optimizers, HRP does not require the invertibility of the covariance matrix. In
+fact, HRP can compute a portfolio on an ill-degenerated or even a singular covariance matrix, an
+impossible feat for quadratic optimizers. Monte Carlo experiments show that HRP delivers lower
+out-of-sample variance than CLA, even though minimum-variance is CLA's optimization
+objective. HRP also produces less risky portfolios out-of-sample compared to traditional risk
+parity methods.
 
 The main idea of HRP is to allocate weights to a portfolio of securities based on 
 
@@ -43,7 +37,7 @@ The computation is split into four stages
 * Generate Security Weighting
 
 
-### Compute Distance Matrix
+#### Compute Distance Matrix
 In the HRP paper, clusters is defined by a group of securities that similarly correlates with other securities within the portfolio.  
 
 First, we compute a n by n distance matrix based on the correlation matrix on the n assets. The distance is defined as $$d_{i,j} = \sqrt{\frac{1}{2}*\left(1-\rho_{i,j}\right)}$$ which produces the distance between __each asset__. The lower the the "distance", the more correlated two assets are. This step is implemented in the `distanceMatrix_elementwise` function.  
@@ -102,7 +96,7 @@ NumericMatrix distanceMatrix_rowwise(NumericMatrix MAT_CORR){
 
 ```
 
-### Cluster Generation
+#### Cluster Generation
 Provided the matrix of similarities between each assets, we proceed to the clustering step to group securities into a hierarchy of clusters.  
 
 During each iteration, we pick a set of two most similar securities based on the distance matrix generated from the previous step, group them together as a cluster, and replace this cluster with a generalizing branch. In this implementation, the generalizaing branch is created using the nearest point algorithm. For branch $$u$$ consists of security $$i$$ and $$j$$, the similarty with all remaining securities in the portfolio is calculated as $$D_{,u} = min\{D_{,i}, D_{,j}\}$$
@@ -194,7 +188,7 @@ NumericMatrix clusterMatrix(NumericMatrix MAT_CORR){
 }
 ```
 
-### Quasi-Diagonalization
+#### Quasi-Diagonalization
 Provided the clusterization from the last step, we want tp re-organize the covariance matrix so the indexing follows clusters. In order to achive this, we need to first "flatten the clusters" based on the $$N by 4$$ matrix generated from the last step. This step is implemented in function `clusterIndex` with a recursive call on `flatCluster`, the result is a security index based on generated clusters from previous step. 
 
 In the `flatCluster` function, we start with the last cluster generated and trace back to its components based on the first two element in the cluster matrix. If a component is a generalizing branch, the function calls itself recursively to trace back the components of the generalizing brach, until the index of a security is returned. `task` constructs from `OpenMP` is used to speed up the process by teating each "trace back" as a task, and a `taskwait` construct is used to ensure the security index is generated from a bottom-up approach.
@@ -221,8 +215,11 @@ arma::mat flatCluster(int index, int threshold, NumericMatrix clusterMatrix){
     return temp_index;
   }
   
+  #pragma omp task shared(temp_index_a)
   temp_index_a = flatCluster(clusterMatrix(index - threshold - 1,1), threshold, clusterMatrix);
+  #pragma omp task shared(temp_index_b)
   temp_index_b = flatCluster(clusterMatrix(index - threshold - 1,0), threshold, clusterMatrix);
+  #pragma omp taskwait
   temp_index = join_rows(temp_index_a, temp_index_b);
   
   return temp_index;
@@ -238,8 +235,16 @@ arma::mat clusterIndex(NumericMatrix clusterMatrix, NumericMatrix MAT_COV){
   
   arma::mat assetIndex;
   
-  assetIndex = join_rows(flatCluster(clusterMatrix(nrow_clusterMatrix - 1,1), num_asset, clusterMatrix), 
-                         flatCluster(clusterMatrix(nrow_clusterMatrix - 1,0), num_asset, clusterMatrix));
+  omp_set_nested(1);
+  
+  #pragma omp parallel 
+  {
+    #pragma omp single
+    {
+      assetIndex = join_rows(flatCluster(clusterMatrix(nrow_clusterMatrix - 1,1), num_asset, clusterMatrix), 
+                             flatCluster(clusterMatrix(nrow_clusterMatrix - 1,0), num_asset, clusterMatrix));
+    }
+  }
   
   return assetIndex;
 }
@@ -274,7 +279,7 @@ NumericMatrix quasiDiag(NumericMatrix MAT_COV, arma::mat assetIndex){
 
 ```
 
-### Weighting Generation
+#### Weighting Generation
 With the re-organized quasi-diagonal covariance matrix and the asset index of clustered securities, we proceed into weight allocation. 
 
 As stated in the paper, the inverse-variance allocation is optimal for a diagonal covariance matrix. This step takes the advantage of this by 
@@ -418,3 +423,8 @@ knitr::kable(Result[, 2:3, with = FALSE])
 
 ```
 
+## System and R-Packages Information
+
+```{r, echo=FALSE}
+sessionInfo()
+```

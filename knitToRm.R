@@ -42,6 +42,6 @@ knit.rmd.file("RMD/COGS_to_Revenue/COGS_to_Revenue.Rmd", "_posts/2016-05-16-COGS
 knit.rmd.file("RMD/DE_and_Reverse/DE_and_Reverse_DE.Rmd", "_posts/2014-10-27-DE_and_Reverse.md")
 knit.rmd.file("RMD/Gerber_Statistic_and_Hierarchical_Risk_Parity/Gerber_Statistic_and_Hierarchical_Risk_Parity.Rmd", "_posts/2016-05-30-Gerber_Statistic_and_Hierarchical_Risk_Parity.md")
 knit.rmd.file("RMD/HRP/2016-05-27-HRP.Rmd", "_posts/2016-05-27-HRP.md")
-knit.rmd.file("RMD/Gerber/2016-05-26-HRP.Rmd", "_posts/2016-05-26-Gerber.md")
+knit.rmd.file("RMD/Gerber/2016-05-26-Gerber.Rmd", "_posts/2016-05-26-Gerber.md")
 
 # 6. Push the changes to git
